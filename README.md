@@ -206,10 +206,10 @@ sloppy --version            # 📌 Show version
 pip install git+https://github.com/rsionnach/sloppy.git
 
 # With colored output (recommended)
-pip install "sloppy[rich] @ git+https://github.com/rsionnach/sloppy.git"
+pip install "sloppylint[rich] @ git+https://github.com/rsionnach/sloppy.git"
 
 # With all optional features
-pip install "sloppy[all] @ git+https://github.com/rsionnach/sloppy.git"
+pip install "sloppylint[all] @ git+https://github.com/rsionnach/sloppy.git"
 
 # Or clone and install for development
 git clone https://github.com/rsionnach/sloppy.git

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "sloppy"
+name = "sloppylint"
 version = "0.1.0"
 description = "Python AI Slop Detector - Find over-engineering, hallucinations, and dead code"
 readme = "README.md"
