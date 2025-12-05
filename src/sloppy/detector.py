@@ -9,6 +9,7 @@ from typing import Iterator, List, Optional, Set
 from sloppy.patterns import get_all_patterns
 from sloppy.patterns.base import Issue, Severity
 from sloppy.analyzers.ast_analyzer import ASTAnalyzer
+from sloppy.analyzers.unused_imports import find_unused_imports
 
 
 SEVERITY_ORDER = {
@@ -112,5 +113,9 @@ class Detector:
                 for lineno, line in enumerate(lines, start=1):
                     pattern_issues = pattern.check_line(line, lineno, path)
                     issues.extend(pattern_issues)
+        
+        # Run file-level analyzers
+        if "unused_import" not in self.disabled_patterns:
+            issues.extend(find_unused_imports(path, content))
         
         return issues
