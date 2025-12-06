@@ -47,6 +47,46 @@ class MagicNumber(RegexPattern):
         r'(?<![.\w])\b(?!0\b|1\b|2\b|100\b|1000\b|True\b|False\b|None\b)'
         r'\d{2,}\b(?!\.\d)'  # 2+ digit numbers not followed by decimal
     )
+    
+    def check_line(
+        self,
+        line: str,
+        lineno: int,
+        file: Path,
+    ) -> List[Issue]:
+        """Check a line for magic numbers, excluding those in strings."""
+        if self.pattern is None:
+            return []
+        
+        # Skip dunder assignments (like __copyright__, __version__)
+        stripped = line.strip()
+        if stripped.startswith('__') and '=' in stripped:
+            return []
+        
+        issues = []
+        for match in self.pattern.finditer(line):
+            # Check if this match is inside a string
+            start = match.start()
+            prefix = line[:start]
+            
+            # Count quotes to determine if we're inside a string
+            single_quotes = prefix.count("'") - prefix.count("\\'")
+            double_quotes = prefix.count('"') - prefix.count('\\"')
+            
+            # If odd number of quotes, we're inside a string
+            if single_quotes % 2 == 1 or double_quotes % 2 == 1:
+                continue
+            
+            issues.append(
+                self.create_issue(
+                    file=file,
+                    line=lineno,
+                    column=match.start(),
+                    code=line.strip(),
+                )
+            )
+        
+        return issues
 
 
 class PassPlaceholder(ASTPattern):

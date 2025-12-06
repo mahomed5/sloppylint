@@ -6,6 +6,34 @@ from pathlib import Path
 from sloppy.detector import Detector
 
 
+def test_magic_number_in_string_not_flagged(tmp_python_file):
+    """Test that numbers inside strings are not flagged as magic numbers."""
+    code = '''
+__copyright__ = "Copyright 2025 FakeCo"
+message = "Error code 404"
+__version__ = "1.2.3"
+'''
+    file = tmp_python_file(code)
+    detector = Detector()
+    issues = detector.scan([file])
+    
+    magic_issues = [i for i in issues if i.pattern_id == "magic_number"]
+    assert len(magic_issues) == 0
+
+
+def test_magic_number_outside_string_flagged(tmp_python_file):
+    """Test that magic numbers outside strings are still flagged."""
+    code = '''
+timeout = 3600
+'''
+    file = tmp_python_file(code)
+    detector = Detector()
+    issues = detector.scan([file])
+    
+    magic_issues = [i for i in issues if i.pattern_id == "magic_number"]
+    assert len(magic_issues) == 1
+
+
 def test_mutable_default_list_detected(tmp_python_file):
     """Test that mutable list defaults are detected."""
     code = '''
