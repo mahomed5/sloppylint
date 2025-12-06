@@ -1,14 +1,15 @@
 """Tests for dead code detection."""
 
-import pytest
 from pathlib import Path
+
+import pytest
 
 from sloppy.detector import Detector
 
 
 def test_unused_function_detected(tmp_python_file):
     """Test that unused functions are detected."""
-    code = '''
+    code = """
 def used_func():
     return 42
 
@@ -16,11 +17,11 @@ def unused_func():
     return "never called"
 
 result = used_func()
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 1
     assert "unused_func" in dead[0].message
@@ -28,7 +29,7 @@ result = used_func()
 
 def test_used_function_not_flagged(tmp_python_file):
     """Test that used functions are not flagged."""
-    code = '''
+    code = """
 def helper():
     return 42
 
@@ -36,18 +37,18 @@ def main():
     return helper() * 2
 
 result = main()
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 0
 
 
 def test_unused_class_detected(tmp_python_file):
     """Test that unused classes are detected."""
-    code = '''
+    code = """
 class UsedClass:
     pass
 
@@ -55,11 +56,11 @@ class UnusedClass:
     pass
 
 obj = UsedClass()
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 1
     assert "UnusedClass" in dead[0].message
@@ -67,7 +68,7 @@ obj = UsedClass()
 
 def test_class_as_base_counts_as_usage(tmp_python_file):
     """Test that classes used as base classes are not flagged."""
-    code = '''
+    code = """
 class BaseClass:
     pass
 
@@ -75,28 +76,28 @@ class ChildClass(BaseClass):
     pass
 
 obj = ChildClass()
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 0
 
 
 def test_decorated_function_not_flagged(tmp_python_file):
     """Test that decorated functions are not flagged."""
-    code = '''
+    code = """
 from functools import lru_cache
 
 @lru_cache
 def cached_func(x):
     return x * 2
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     # lru_cache decorated functions might be called externally
     assert len(dead) == 0
@@ -104,41 +105,41 @@ def cached_func(x):
 
 def test_test_functions_not_flagged(tmp_python_file):
     """Test that test functions are not flagged."""
-    code = '''
+    code = """
 def test_something():
     assert True
 
 def test_another_thing():
     assert 1 + 1 == 2
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 0
 
 
 def test_main_function_not_flagged(tmp_python_file):
     """Test that main functions are not flagged."""
-    code = '''
+    code = """
 def main():
     print("Hello")
 
 if __name__ == "__main__":
     main()
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 0
 
 
 def test_dunder_methods_not_flagged(tmp_python_file):
     """Test that dunder methods are not flagged."""
-    code = '''
+    code = """
 class MyClass:
     def __init__(self):
         self.value = 42
@@ -150,18 +151,18 @@ class MyClass:
         return f"MyClass({self.value})"
 
 obj = MyClass()
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 0
 
 
 def test_method_called_on_instance_not_flagged(tmp_python_file):
     """Test that methods called on instances are not flagged."""
-    code = '''
+    code = """
 class Calculator:
     def add(self, a, b):
         return a + b
@@ -171,11 +172,11 @@ class Calculator:
 
 calc = Calculator()
 result = calc.add(1, 2)
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector()
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     # subtract is not called but class is used, so we don't flag it
     assert len(dead) == 0
@@ -183,13 +184,13 @@ result = calc.add(1, 2)
 
 def test_disabled_pattern(tmp_python_file):
     """Test that dead_code can be disabled."""
-    code = '''
+    code = """
 def unused_func():
     return 42
-'''
+"""
     file = tmp_python_file(code)
     detector = Detector(disabled_patterns=["dead_code"])
     issues = detector.scan([file])
-    
+
     dead = [i for i in issues if i.pattern_id == "dead_code"]
     assert len(dead) == 0

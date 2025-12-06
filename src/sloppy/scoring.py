@@ -10,15 +10,16 @@ if TYPE_CHECKING:
 @dataclass
 class SlopScore:
     """Slop score breakdown by axis."""
+
     noise: int = 0
     quality: int = 0
     style: int = 0
     structure: int = 0
-    
+
     @property
     def total(self) -> int:
         return self.noise + self.quality + self.style + self.structure
-    
+
     @property
     def verdict(self) -> str:
         if self.total == 0:
@@ -42,11 +43,11 @@ SEVERITY_WEIGHTS = {
 def calculate_score(issues: list["Issue"]) -> SlopScore:
     """Calculate the slop score from issues."""
     score = SlopScore()
-    
+
     for issue in issues:
         weight = SEVERITY_WEIGHTS.get(issue.severity.value, 3)
         axis = issue.axis
-        
+
         if axis == "noise":
             score.noise += weight
         elif axis == "quality":
@@ -55,5 +56,5 @@ def calculate_score(issues: list["Issue"]) -> SlopScore:
             score.style += weight
         elif axis == "structure":
             score.structure += weight
-    
+
     return score

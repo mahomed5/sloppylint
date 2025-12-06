@@ -8,11 +8,13 @@ from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Pattern as RePattern
+from typing import Optional
+from typing import Pattern as RePattern
 
 
 class Severity(Enum):
     """Issue severity levels."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -21,6 +23,7 @@ class Severity(Enum):
 
 class Axis(Enum):
     """Slop detection axes."""
+
     NOISE = "noise"
     QUALITY = "quality"
     STYLE = "style"
@@ -30,6 +33,7 @@ class Axis(Enum):
 @dataclass
 class Issue:
     """A detected issue."""
+
     pattern_id: str
     severity: Severity
     axis: str
@@ -42,12 +46,12 @@ class Issue:
 
 class BasePattern(ABC):
     """Base class for all detection patterns."""
-    
+
     id: str = ""
     severity: Severity = Severity.MEDIUM
     axis: str = "noise"
     message: str = ""
-    
+
     def create_issue(
         self,
         file: Path,
@@ -67,7 +71,7 @@ class BasePattern(ABC):
             message=message or self.message,
             code=code,
         )
-    
+
     def create_issue_from_node(
         self,
         node: ast.AST,
@@ -87,9 +91,9 @@ class BasePattern(ABC):
 
 class RegexPattern(BasePattern):
     """Pattern that matches via regex on lines."""
-    
+
     pattern: Optional[RePattern[str]] = None
-    
+
     def check_line(
         self,
         line: str,
@@ -99,7 +103,7 @@ class RegexPattern(BasePattern):
         """Check a line for pattern matches."""
         if self.pattern is None:
             return []
-        
+
         issues = []
         for match in self.pattern.finditer(line):
             issues.append(
@@ -115,9 +119,9 @@ class RegexPattern(BasePattern):
 
 class ASTPattern(BasePattern):
     """Pattern that operates on AST nodes."""
-    
+
     node_types: tuple[type, ...] = ()
-    
+
     def check_node(
         self,
         node: ast.AST,

@@ -1,10 +1,11 @@
 """Tests for configuration support."""
 
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
-from sloppy.config import Config, load_config, find_config_file, get_default_ignores
+import pytest
+
+from sloppy.config import Config, find_config_file, get_default_ignores, load_config
 
 
 def test_config_defaults():
@@ -29,7 +30,7 @@ def test_config_from_dict():
         "ci": True,
     }
     config = Config.from_dict(data)
-    
+
     assert config.ignore == ["tests/*", "docs/*"]
     assert config.disable == ["magic_number", "todo_placeholder"]
     assert config.severity == "medium"
@@ -41,16 +42,18 @@ def test_config_from_dict():
 def test_load_config_from_pyproject(tmp_path):
     """Test loading config from pyproject.toml."""
     pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text('''
+    pyproject.write_text(
+        """
 [tool.sloppy]
 ignore = ["venv/*", ".git/*"]
 disable = ["debug_print"]
 severity = "high"
 max-score = 100
-''')
-    
+"""
+    )
+
     config = load_config(pyproject)
-    
+
     assert "venv/*" in config.ignore
     assert "debug_print" in config.disable
     assert config.severity == "high"
@@ -60,13 +63,15 @@ max-score = 100
 def test_load_config_missing_section(tmp_path):
     """Test loading config when [tool.sloppy] section is missing."""
     pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text('''
+    pyproject.write_text(
+        """
 [project]
 name = "myproject"
-''')
-    
+"""
+    )
+
     config = load_config(pyproject)
-    
+
     # Should return default config
     assert config.ignore == []
     assert config.disable == []
@@ -75,7 +80,7 @@ name = "myproject"
 def test_load_config_no_file():
     """Test loading config when file doesn't exist."""
     config = load_config(Path("/nonexistent/pyproject.toml"))
-    
+
     # Should return default config
     assert config.ignore == []
     assert config.severity == "low"
@@ -86,11 +91,11 @@ def test_find_config_file(tmp_path):
     # Create nested directory structure
     subdir = tmp_path / "src" / "mypackage"
     subdir.mkdir(parents=True)
-    
+
     # Create pyproject.toml in root
     pyproject = tmp_path / "pyproject.toml"
     pyproject.write_text("[tool.sloppy]\n")
-    
+
     # Should find it from subdir
     found = find_config_file(subdir)
     assert found == pyproject
@@ -99,7 +104,7 @@ def test_find_config_file(tmp_path):
 def test_default_ignores():
     """Test that default ignores are reasonable."""
     defaults = get_default_ignores()
-    
+
     assert "__pycache__" in defaults
     assert ".git" in defaults
     assert ".venv" in defaults
@@ -113,7 +118,7 @@ def test_merge_cli_args():
         disable=["config_disable"],
         severity="low",
     )
-    
+
     class MockArgs:
         ignore = ["cli_ignore"]
         disable = ["cli_disable"]
@@ -123,9 +128,9 @@ def test_merge_cli_args():
         max_score = 75
         format = "compact"
         ci = True
-    
+
     config.merge_cli_args(MockArgs())
-    
+
     # CLI values should be appended/override
     assert "config_ignore" in config.ignore
     assert "cli_ignore" in config.ignore
