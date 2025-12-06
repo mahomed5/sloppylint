@@ -3,7 +3,7 @@
 <div align="center">
   <h1>🐷 Sloppylint</h1>
   <p><strong>Detect AI-generated code anti-patterns in your Python codebase.</strong></p>
-  <p><em>100+ patterns across 6 languages (JavaScript, Java, Ruby, Go, C#, PHP)</em></p>
+  <p><em>Catches AI-specific anti-patterns that traditional linters miss</em></p>
 </div>
 
 [![PyPI](https://img.shields.io/pypi/v/sloppylint?style=for-the-badge)](https://pypi.org/project/sloppylint/)
@@ -40,6 +40,19 @@ sloppylint .
 #
 # Verdict: SLOPPY
 ```
+
+---
+
+## 🤔 Why Sloppylint Exists
+
+Traditional linters catch style and syntax issues. But AI-generated code introduces **new failure patterns** they weren't designed to detect:
+
+- **Hallucinated imports** - packages and functions that don't exist
+- **Cross-language leakage** - `.push()`, `.equals()`, `.length` in Python
+- **Placeholder code** - `pass`, `TODO`, functions that do nothing
+- **Confident wrongness** - code that looks right but fails at runtime
+
+Sloppylint targets these AI-specific patterns that escape Pylint, Flake8, and code review.
 
 ---
 
@@ -202,6 +215,18 @@ LLMs are trained on code from many languages. When generating Python, they somet
 | **Go** | `fmt.Println()`, `nil` | `print()`, `None` |
 | **C#** | `.Length`, `.Count`, `.ToLower()` | `len()`, `len()`, `.lower()` |
 | **PHP** | `strlen()`, `array_push()`, `explode()` | `len()`, `.append()`, `.split()` |
+
+---
+
+## 🚫 What Sloppylint Is Not
+
+Sloppylint does **not** replace:
+- Human code review
+- Traditional linters (Pylint, Flake8, Ruff)
+- Type checkers (mypy, pyright)
+- Security scanners (Bandit, Semgrep)
+
+It **complements** them by catching patterns these tools miss—patterns uniquely common in AI-generated code.
 
 ---
 
