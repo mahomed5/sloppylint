@@ -151,10 +151,9 @@ KNOWN_HALLUCINATIONS = {
     ("json", "JSONEncoder"): None,  # Valid
     ("json", "parse"): "Use json.loads() not json.parse() (JavaScript pattern)",
     ("json", "stringify"): "Use json.dumps() not json.stringify() (JavaScript pattern)",
-    # === common non-existent packages ===
-    ("utils", None): "Generic 'utils' is not a standard package - likely meant local module",
-    ("helpers", None): "Generic 'helpers' is not a standard package - likely meant local module",
-    ("common", None): "Generic 'common' is not a standard package - likely meant local module",
+    # NOTE: Generic module names like 'utils', 'helpers', 'common' are NOT flagged here
+    # because they are often valid local modules. The WrongStdlibImport pattern
+    # handles these with proper local file checking.
     # === pytest confusion ===
     ("unittest", "fixture"): "fixture is from pytest, not unittest",
     ("unittest", "mark"): "mark is from pytest, not unittest",
@@ -165,7 +164,9 @@ KNOWN_HALLUCINATIONS = {
     ("http", "get"): "Use http.client or requests for HTTP requests",
     # === logging confusion ===
     ("logging", "log"): None,  # Valid - logging.log() exists
-    ("logger", None): "'logger' is not a module - use 'logging'",
+    # NOTE: We don't flag generic module names like 'utils', 'helpers', 'common' here
+    # because they are often valid local modules. The WrongStdlibImport pattern
+    # handles these with proper local file checking.
     # === SQLAlchemy confusion ===
     ("sqlalchemy", "Model"): "Model is from flask_sqlalchemy, SQLAlchemy uses declarative_base()",
     ("sqlalchemy", "db"): "db is typically a Flask-SQLAlchemy instance, not from sqlalchemy",
@@ -187,51 +188,96 @@ def check_known_hallucination(module: str, name: Optional[str]) -> Optional[str]
     return None
 
 
-def is_likely_hallucinated_package(module_name: str) -> Optional[str]:
+def is_likely_hallucinated_package(
+    module_name: str, source_file: Optional["Path"] = None
+) -> Optional[str]:
     """
     Check if a module name looks like a hallucinated package.
 
+    Args:
+        module_name: The module being imported
+        source_file: Path to the file containing the import (for local file checking)
+
     Returns error message if likely hallucinated, None otherwise.
     """
+    from pathlib import Path
+
     base = module_name.split(".")[0]
 
-    # Check if it exists
+    # Check if it exists as an installed package
     if module_exists(module_name):
         return None
 
-    # Common AI hallucination patterns
+    # Check if it's a local file in the same directory as the source file
+    if source_file is not None:
+        source_dir = source_file.parent
+        # Check for module_name.py in same directory
+        local_module = source_dir / f"{base}.py"
+        if local_module.exists():
+            return None
+        # Check for module_name/ package directory
+        local_package = source_dir / base
+        if local_package.is_dir() and (local_package / "__init__.py").exists():
+            return None
+        # Check for relative imports - look for the module in parent directories
+        # that might be package roots (have __init__.py)
+        current = source_dir
+        for _ in range(3):  # Look up to 3 levels
+            if (current / f"{base}.py").exists():
+                return None
+            if (current / base).is_dir():
+                return None
+            parent = current.parent
+            if parent == current:
+                break
+            # Only continue if current dir is a package
+            if not (current / "__init__.py").exists():
+                break
+            current = parent
+
+    # At this point, we know the module doesn't exist as installed or local
+    # But we should NOT flag it as hallucination since it could be:
+    # 1. A package that will be installed later
+    # 2. A local module in a different directory structure
+    # 3. A typo (but not AI hallucination)
+    #
+    # The purpose of this linter is to catch AI-generated "slop", not all import errors.
+    # Only flag patterns that are KNOWN AI hallucinations.
+
+    # Common AI hallucination patterns - these are generic names AI often invents
+    # that don't exist as real packages
     hallucinated_patterns = {
         "utils": "Module 'utils' does not exist - did you mean a local module?",
         "helpers": "Module 'helpers' does not exist - did you mean a local module?",
         "common": "Module 'common' does not exist - did you mean a local module?",
-        "config": "Module 'config' does not exist - did you mean a local module?",
-        "constants": "Module 'constants' does not exist - did you mean a local module?",
-        "models": "Module 'models' does not exist - did you mean a local module?",
-        "schemas": "Module 'schemas' does not exist - did you mean a local module?",
-        "services": "Module 'services' does not exist - did you mean a local module?",
     }
 
     if base in hallucinated_patterns:
         return hallucinated_patterns[base]
 
-    return f"Module '{module_name}' does not exist - possible hallucination"
+    # Don't flag unknown modules as hallucinations - they might be:
+    # - Local modules we couldn't find
+    # - Third-party packages not yet installed
+    # - Typos (not AI hallucinations)
+    return None
 
 
 # Common hallucinated method calls
 # Format: method_name -> (correct_method, context_hint)
+# NOTE: Only include methods that are NEVER valid in Python. Methods like find(), sub(),
+# push(), echo() are valid in certain contexts (str.find, re.sub, custom methods, click.echo)
+# and should NOT be flagged as hallucinations.
 HALLUCINATED_METHODS = {
-    # String methods
+    # String methods - only flag methods that don't exist on ANY Python type
     "titlecase": ("title", "str.title()"),
     "uppercase": ("upper", "str.upper()"),
     "lowercase": ("lower", "str.lower()"),
     "trimStart": ("lstrip", "str.lstrip() - JavaScript pattern"),
     "trimEnd": ("rstrip", "str.rstrip() - JavaScript pattern"),
-    "trim": ("strip", "str.strip() - JavaScript pattern"),
     "charAt": ("[]", "Use indexing s[i] not s.charAt(i) - JavaScript pattern"),
     "indexOf": ("find", "str.find() or 'in' operator - JavaScript pattern"),
     "lastIndexOf": ("rfind", "str.rfind() - JavaScript pattern"),
     "substring": ("[]", "Use slicing s[start:end] - JavaScript pattern"),
-    "substr": ("[]", "Use slicing s[start:start+length] - JavaScript pattern"),
     "includes": ("in", "Use 'in' operator - JavaScript pattern"),
     "repeat": ("*", "Use s * n for repetition - JavaScript pattern"),
     "padStart": ("rjust", "str.rjust() or str.zfill() - JavaScript pattern"),
@@ -239,25 +285,19 @@ HALLUCINATED_METHODS = {
     "toUpperCase": ("upper", "str.upper() - JavaScript pattern"),
     "toLowerCase": ("lower", "str.lower() - JavaScript pattern"),
     "toString": ("str", "Use str() builtin - JavaScript pattern"),
-    # List/Array methods
-    "push": ("append", "list.append() - JavaScript pattern"),
+    # List/Array methods - only flag methods that don't exist in Python
     "unshift": ("insert", "list.insert(0, x) - JavaScript pattern"),
     "shift": ("pop", "list.pop(0) - JavaScript pattern"),
     "splice": ("[]", "Use slicing/del for splice - JavaScript pattern"),
     "slice": ("[]", "Use slicing list[start:end] - JavaScript pattern"),
     "concat": ("+", "Use + or extend() - JavaScript pattern"),
     "forEach": ("for", "Use for loop - JavaScript pattern"),
-    "map": ("list comprehension", "Use [f(x) for x in list] or map()"),
-    "filter": ("list comprehension", "Use [x for x in list if cond] or filter()"),
-    "reduce": ("functools.reduce", "Use functools.reduce()"),
-    "find": ("next", "Use next(x for x in list if cond) or list comprehension"),
     "findIndex": ("next", "Use next(i for i,x in enumerate(list) if cond)"),
     "some": ("any", "Use any(cond for x in list)"),
     "every": ("all", "Use all(cond for x in list)"),
     "flat": ("itertools.chain", "Use itertools.chain.from_iterable()"),
     "flatMap": ("itertools.chain", "Use chain.from_iterable(f(x) for x in list)"),
     "length": ("len", "Use len(list) not list.length - JavaScript pattern"),
-    "size": ("len", "Use len(obj) not obj.size()"),
     # Dict methods
     "hasOwnProperty": ("in", "Use 'key in dict' - JavaScript pattern"),
     "keys": (None, None),  # Valid in Python
@@ -274,11 +314,9 @@ HALLUCINATED_METHODS = {
     "compareTo": ("<>", "Use comparison operators - Java pattern"),
     "println": ("print", "Use print() - Java pattern"),
     "printf": ("print", "Use print() or f-string - Java pattern"),
-    "charAt": ("[]", "Use indexing s[i] - Java/JavaScript pattern"),
     "getClass": ("type", "Use type() or __class__ - Java pattern"),
     "hashCode": ("hash", "Use hash() builtin - Java pattern"),
     "isEmpty": ("not", "Use 'not obj' or 'len(obj) == 0' - Java pattern"),
-    "contains": ("in", "Use 'in' operator - Java pattern"),
     "startsWith": ("startswith", "Use str.startswith() - Java pattern"),
     "endsWith": ("endswith", "Use str.endswith() - Java pattern"),
     "toCharArray": ("list", "Use list(s) - Java pattern"),
@@ -296,7 +334,6 @@ HALLUCINATED_METHODS = {
     "chomp": ("strip", "Use str.strip() - Ruby pattern"),
     "chop": ("[:-1]", "Use slicing s[:-1] - Ruby pattern"),
     "gsub": ("replace", "Use str.replace() or re.sub() - Ruby pattern"),
-    "sub": ("replace", "Use str.replace() or re.sub() - Ruby pattern"),
     "split": (None, None),  # Valid in Python
     "join": (None, None),  # Valid in Python
     "reverse": (None, None),  # Valid in Python (list.reverse())
@@ -340,7 +377,6 @@ HALLUCINATED_METHODS = {
     "TryParse": (None, "Use try/except with int(), float() - C# pattern"),
     "ToString": ("str", "Use str() builtin - C# pattern"),
     # PHP patterns
-    "echo": ("print", "Use print() - PHP pattern"),
     "var_dump": ("print", "Use print() or pprint - PHP pattern"),
     "print_r": ("print", "Use print() or pprint - PHP pattern"),
     "isset": ("is not None", "Use 'is not None' or 'in' - PHP pattern"),
@@ -350,7 +386,6 @@ HALLUCINATED_METHODS = {
     "array_merge": ("+", "Use + or extend() - PHP pattern"),
     "array_keys": ("keys", "Use dict.keys() - PHP pattern"),
     "array_values": ("values", "Use dict.values() - PHP pattern"),
-    "count": ("len", "Use len() - PHP pattern"),
     "strlen": ("len", "Use len() - PHP pattern"),
     "strpos": ("find", "Use str.find() - PHP pattern"),
     "str_replace": ("replace", "Use str.replace() - PHP pattern"),
@@ -358,19 +393,30 @@ HALLUCINATED_METHODS = {
     "implode": ("join", "Use str.join() - PHP pattern"),
     "strtolower": ("lower", "Use str.lower() - PHP pattern"),
     "strtoupper": ("upper", "Use str.upper() - PHP pattern"),
-    "trim": ("strip", "Use str.strip() - PHP pattern"),
-    "substr": ("[]", "Use slicing s[start:end] - PHP pattern"),
     "preg_match": ("re.search", "Use re.search() - PHP pattern"),
     "preg_replace": ("re.sub", "Use re.sub() - PHP pattern"),
     "file_get_contents": ("open", "Use open().read() - PHP pattern"),
     "file_put_contents": ("open", "Use open().write() - PHP pattern"),
     "json_encode": ("json.dumps", "Use json.dumps() - PHP pattern"),
     "json_decode": ("json.loads", "Use json.loads() - PHP pattern"),
-    # Other common mistakes
-    "len": (None, None),  # Valid - but common mistake is .len() instead of len()
-    "print": (None, None),  # Valid
-    "sorted": (None, None),  # Valid
-    "reversed": (None, None),  # Valid
+    # Valid Python methods - explicitly mark as valid to avoid false positives
+    # These exist in Python standard library or are common in popular packages
+    "find": (None, None),  # str.find() is valid
+    "sub": (None, None),  # re.sub() is valid
+    "push": (None, None),  # Could be custom method (e.g., stack.push())
+    "echo": (None, None),  # click.echo() is valid
+    "trim": (None, None),  # Could be custom method
+    "contains": (None, None),  # pandas/polars have .contains()
+    "map": (None, None),  # map() builtin, pandas.map(), etc.
+    "filter": (None, None),  # filter() builtin
+    "reduce": (None, None),  # functools.reduce()
+    "size": (None, None),  # numpy/pandas .size attribute
+    "count": (None, None),  # str.count(), list.count()
+    "substr": (None, None),  # Could be custom method
+    "print": (None, None),  # Valid builtin
+    "sorted": (None, None),  # Valid builtin
+    "reversed": (None, None),  # Valid builtin
+    "len": (None, None),  # Valid builtin
 }
 
 

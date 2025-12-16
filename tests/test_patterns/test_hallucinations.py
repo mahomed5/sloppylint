@@ -251,11 +251,11 @@ from json import parse
     assert "json.loads" in hallucinated[0].message
 
 
-def test_hallucinated_method_push(tmp_python_file):
-    """Test that JavaScript .push() method is detected."""
+def test_hallucinated_method_unshift(tmp_python_file):
+    """Test that JavaScript .unshift() method is detected."""
     code = """
 items = []
-items.push(1)
+items.unshift(1)
 """
     file = tmp_python_file(code)
     detector = Detector()
@@ -263,7 +263,25 @@ items.push(1)
 
     method_issues = [i for i in issues if i.pattern_id == "hallucinated_method"]
     assert len(method_issues) == 1
-    assert "append" in method_issues[0].message
+    assert "insert" in method_issues[0].message
+
+
+def test_push_not_flagged(tmp_python_file):
+    """Test that .push() is NOT flagged - it could be a valid custom method."""
+    code = """
+# push() is valid in many contexts:
+# - Stack.push(), Queue.push()
+# - click: push_module.push()
+items = []
+items.push(1)
+"""
+    file = tmp_python_file(code)
+    detector = Detector()
+    issues = detector.scan([file])
+
+    # push should NOT be flagged as it could be a custom method
+    method_issues = [i for i in issues if i.pattern_id == "hallucinated_method"]
+    assert len(method_issues) == 0
 
 
 def test_hallucinated_method_foreach(tmp_python_file):

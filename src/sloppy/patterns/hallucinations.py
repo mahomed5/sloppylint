@@ -523,7 +523,7 @@ class WrongStdlibImport(ASTPattern):
 
         if isinstance(node, ast.Import):
             for alias in node.names:
-                error_msg = is_likely_hallucinated_package(alias.name)
+                error_msg = is_likely_hallucinated_package(alias.name, source_file=file)
                 if error_msg:
                     issues.append(
                         self.create_issue_from_node(
@@ -536,7 +536,7 @@ class WrongStdlibImport(ASTPattern):
 
         elif isinstance(node, ast.ImportFrom):
             if node.module:
-                error_msg = is_likely_hallucinated_package(node.module)
+                error_msg = is_likely_hallucinated_package(node.module, source_file=file)
                 if error_msg:
                     names = ", ".join(a.name for a in node.names[:3])
                     if len(node.names) > 3:
